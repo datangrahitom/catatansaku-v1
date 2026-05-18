@@ -1,0 +1,6 @@
+{
+  "name": "CatatanSaku",
+  "description": "Financial Tracker with AI insights",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
