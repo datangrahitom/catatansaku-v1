@@ -16,6 +16,8 @@
     "date-fns": "^3.6.0",
     "dexie": "^4.0.8",
     "dexie-react-hooks": "^1.1.7",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.453.0",
     "motion": "^11.11.13",
     "next": "^15.0.0",

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, CATEGORIES, PAYMENT_METHODS } from "@/lib/db";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function BentoDashboard() {
   const router = useRouter();
@@ -153,7 +155,6 @@ export default function BentoDashboard() {
   const handleResetData = async () => {
     try {
       await db.expenses.clear();
-      setAiReport(null);
       setIsResetModalOpen(false);
     } catch (error) {
       console.error("Failed to reset expenses", error);
@@ -161,40 +162,50 @@ export default function BentoDashboard() {
     }
   };
 
-  // AI Summary State
-  const [aiReport, setAiReport] = useState<string | null>(null);
-  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-
-  const generateAiReport = async () => {
-    if (!expenses || expenses.length === 0) return;
-    setIsGeneratingAi(true);
-    setAiReport(null);
-    try {
-      const expensesForAi = expenses.map((e) => ({
-        amount: e.amount,
-        category: CATEGORIES.find((c) => c.id === e.categoryId)?.name,
-      }));
-
-      const res = await fetch("/api/generate-summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expenses: expensesForAi,
-          allocations: allocationsData || [],
-          budget,
-          month: monthName,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.report) setAiReport(data.report);
-      else setAiReport("Gagal membuat laporan.");
-    } catch (err) {
-      console.error(err);
-      setAiReport("Terjadi kesalahan.");
-    } finally {
-      setIsGeneratingAi(false);
+  const generatePDFReport = () => {
+    if (!expenses || expenses.length === 0) {
+      alert("Tidak ada data pengeluaran untuk diunduh.");
+      return;
     }
+
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text(`Laporan Keuangan - ${monthName.toUpperCase()}`, 14, 22);
+    
+    // Summary Text
+    doc.setFontSize(12);
+    doc.text(`Anggaran: ${formatRupiah(budget)}`, 14, 32);
+    doc.text(`Total Pengeluaran: ${formatRupiah(totalExpenses)}`, 14, 38);
+    doc.text(`Sisa Anggaran: ${formatRupiah(remainingBudget)}`, 14, 44);
+
+    // Prepare table data
+    const tableColumn = ["Tanggal", "Kategori", "Metode", "Catatan", "Jumlah"];
+    const tableRows: any[] = [];
+
+    const sortedExpenses = [...expenses].sort((a, b) => b.date.getTime() - a.date.getTime());
+    sortedExpenses.forEach(expense => {
+      const expenseData = [
+        format(expense.date, "dd MMM yyyy, HH:mm"),
+        CATEGORIES.find(c => c.id === expense.categoryId)?.name || expense.categoryId,
+        PAYMENT_METHODS.find(p => p.id === expense.paymentMethodId)?.name || expense.paymentMethodId,
+        expense.note,
+        formatRupiah(expense.amount)
+      ];
+      tableRows.push(expenseData);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 50,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [37, 99, 235] } // Tailwind blue-600
+    });
+
+    doc.save(`Laporan_CatatanSaku_${monthString}.pdf`);
   };
 
   return (
@@ -401,35 +412,27 @@ export default function BentoDashboard() {
           </button>
         </div>
 
-        {/* AI Financial Report Section */}
-        <div className="col-span-1 md:col-span-3 md:row-span-6 bg-blue-50 rounded-3xl p-6 border border-blue-100 flex flex-col h-full overflow-hidden relative">
-          <h3 className="font-bold text-blue-900 mb-2">Laporan AI Bulanan</h3>
-          <p className="text-[12px] text-blue-700 mb-4">
-            Dapatkan insight analitik dan saran hemat untuk bulan ini.
+        {/* PDF Financial Report Section */}
+        <div className="col-span-1 md:col-span-3 md:row-span-6 bg-blue-50 rounded-3xl p-6 border border-blue-100 flex flex-col justify-center text-center">
+          <div className="bg-white/50 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6 shadow-sm border border-blue-100">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="12" y1="18" x2="12" y2="12" />
+              <polyline points="9 15 12 18 15 15" />
+            </svg>
+          </div>
+          <h3 className="font-bold text-blue-900 mb-2 text-lg">Unduh Laporan PDF</h3>
+          <p className="text-[12px] text-blue-700 mb-8 max-w-[200px] mx-auto">
+            Simpan data keuangan bulan ini dalam format PDF untuk arsipmu.
           </p>
 
-          <div className="flex-1 overflow-y-auto mb-4 bg-white/50 rounded-2xl p-4 text-sm text-slate-700 whitespace-pre-wrap">
-            {isGeneratingAi && (
-              <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-blue-200 rounded w-3/4"></div>
-                <div className="h-4 bg-blue-200 rounded w-full"></div>
-                <div className="h-4 bg-blue-200 rounded w-5/6"></div>
-              </div>
-            )}
-            {!isGeneratingAi && !aiReport && (
-              <p className="text-slate-400 italic text-center mt-10">
-                Klik tombol di bawah untuk men-generate...
-              </p>
-            )}
-            {!isGeneratingAi && aiReport && aiReport}
-          </div>
-
           <button
-            onClick={generateAiReport}
-            disabled={isGeneratingAi || !expenses?.length}
-            className="w-full py-3 bg-white text-blue-600 rounded-xl font-bold shadow-sm border border-blue-100 hover:bg-blue-50 transition-colors disabled:opacity-50"
+            onClick={generatePDFReport}
+            disabled={!expenses?.length}
+            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:bg-blue-500 hover:shadow-xl transition-all disabled:opacity-50 disabled:hover:bg-blue-600 disabled:hover:shadow-lg"
           >
-            {isGeneratingAi ? "Menganalisa..." : "Buat Laporan"}
+            Unduh PDF Sekarang
           </button>
         </div>
 
