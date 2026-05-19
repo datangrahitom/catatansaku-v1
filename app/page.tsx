@@ -188,11 +188,15 @@ export default function BentoDashboard() {
 
   const handleResetData = async () => {
     try {
-      await db.expenses.clear();
+      await Promise.all([
+        db.expenses.clear(),
+        db.budgets.clear(),
+        db.allocations.clear()
+      ]);
       setIsResetModalOpen(false);
     } catch (error) {
-      console.error("Failed to reset expenses", error);
-      alert("Gagal mereset data pengeluaran");
+      console.error("Failed to reset data", error);
+      alert("Gagal mereset data keuangan");
     }
   };
 
@@ -275,23 +279,20 @@ export default function BentoDashboard() {
   }, [expenses, selectedCategoryDetail, categoryDetailStartDate, categoryDetailEndDate]);
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 p-6 flex flex-col max-w-6xl mx-auto transition-colors duration-200">
+    <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 p-4 md:p-8 flex flex-col transition-colors duration-200">
       {/* Header Section */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      <header className="flex flex-row justify-between items-center mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
-            CatatanSaku <span className="text-blue-600 dark:text-blue-400">Dashboard</span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+            CatatanSaku <span className="text-blue-600 dark:text-blue-400 hidden sm:inline">Dashboard</span>
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Selamat pagi, kelola keuanganmu hari ini.
-          </p>
         </div>
         <div className="flex gap-3 items-center">
-          <div className="text-right mr-2">
-            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">
-              Total Pengeluaran
+          <div className="text-right mr-1 sm:mr-2">
+            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase">
+              Total
             </p>
-            <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            <p className="text-sm sm:text-xl font-bold text-slate-800 dark:text-slate-100">
               {formatRupiah(totalExpenses)}
             </p>
           </div>
@@ -306,35 +307,35 @@ export default function BentoDashboard() {
                 </span>
               </div>
             </div>
-            <div className="flex gap-4 mt-2 mr-1 items-center">
+            <div className="flex gap-3 sm:gap-4 mt-1 sm:mt-2 mr-1 items-center">
               <button 
                 onClick={toggleDarkMode}
-                className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors flex items-center gap-1"
+                className="text-[9px] sm:text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors flex items-center gap-1"
                 aria-label="Toggle Dark Mode"
               >
                 {isDarkMode ? <Sun size={12} /> : <Moon size={12} />}
-                {isDarkMode ? "Terang" : "Gelap"}
+                <span className="hidden xs:inline">{isDarkMode ? "Terang" : "Gelap"}</span>
               </button>
               <button 
                 onClick={() => setIsGuideModalOpen(true)}
-                className="text-[10px] uppercase font-bold text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1"
+                className="text-[9px] sm:text-[10px] uppercase font-bold text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1"
                 aria-label="Buka Panduan"
               >
-                <BookOpen size={12} /> Panduan
+                <BookOpen size={12} /> <span className="hidden xs:inline">Panduan</span>
               </button>
               <button 
                 onClick={() => setIsResetModalOpen(true)}
-                className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors flex items-center gap-1"
+                className="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors flex items-center gap-1"
                 aria-label="Reset Pengeluaran"
               >
-                <RotateCcw size={12} /> Reset
+                <RotateCcw size={12} /> <span className="hidden xs:inline">Reset</span>
               </button>
               <button 
                 onClick={handleLogout}
-                className="text-[10px] uppercase font-bold text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex items-center gap-1"
+                className="text-[9px] sm:text-[10px] uppercase font-bold text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex items-center gap-1"
                 aria-label="Keluar Aplikasi"
               >
-                <LogOut size={12} /> Keluar
+                <LogOut size={12} /> <span className="hidden xs:inline">Keluar</span>
               </button>
             </div>
           </div>
@@ -848,8 +849,8 @@ export default function BentoDashboard() {
       {isResetModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-800">
-            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-lg mb-2">Reset Pengeluaran</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Apakah kamu yakin ingin menghapus SEMUA data pengeluaran? Tindakan ini tidak dapat dibatalkan.</p>
+            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-lg mb-2">Reset Data</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Apakah kamu yakin ingin menghapus SEMUA data (Anggaran, Alokasi, dan Pengeluaran)? Tindakan ini tidak dapat dibatalkan.</p>
             <div className="flex gap-3">
               <button 
                 onClick={() => setIsResetModalOpen(false)}
