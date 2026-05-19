@@ -18,23 +18,25 @@ export default function BentoDashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    // Check initial dark mode preference
-    if (typeof window !== "undefined") {
-      const isDark = document.documentElement.classList.contains("dark") || 
-                     window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (isDark) {
-        document.documentElement.classList.add("dark");
-        setIsDarkMode(true);
-      }
+    // Check saved theme or default to light
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      setIsDarkMode(true);
+    } else {
+      document.documentElement.classList.remove("dark");
+      setIsDarkMode(false);
     }
   }, []);
 
   const toggleDarkMode = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
       setIsDarkMode(false);
     } else {
       document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
       setIsDarkMode(true);
     }
   };
