@@ -110,6 +110,9 @@ export default function BentoDashboard() {
   const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [expenseToDeleteId, setExpenseToDeleteId] = useState<number | null>(null);
+  const [expenseToDeleteDetails, setExpenseToDeleteDetails] = useState<{ amount: number; date: Date; note: string; categoryName: string } | null>(null);
   const [allocationNameInput, setAllocationNameInput] = useState("");
   const [allocationAmountInput, setAllocationAmountInput] = useState("");
 
@@ -587,10 +590,17 @@ export default function BentoDashboard() {
                       </p>
                     </div>
                     <button
-                      className="ml-4 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 cursor-pointer transition-colors"
+                      className="ml-4 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 p-1 rounded-full cursor-pointer transition-colors"
                       aria-label="Hapus Transaksi"
                       onClick={() => {
-                         if (expense.id) db.expenses.delete(expense.id);
+                        setExpenseToDeleteId(expense.id || null);
+                        setExpenseToDeleteDetails({
+                          amount: expense.amount,
+                          date: expense.date,
+                          note: expense.note || category?.name || "",
+                          categoryName: category?.name || expense.categoryId,
+                        });
+                        setIsDeleteModalOpen(true);
                       }}
                     >
                       <svg
@@ -599,11 +609,12 @@ export default function BentoDashboard() {
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth="2"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </button>
                   </div>
@@ -871,6 +882,66 @@ export default function BentoDashboard() {
         </div>
       )}
 
+      {isDeleteModalOpen && expenseToDeleteDetails && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-800">
+            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-lg mb-2">Hapus Catatan</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mb-4">Apakah kamu yakin ingin menghapus catatan transaksi ini? Tindakan ini tidak dapat digagalkan.</p>
+            
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6 border border-slate-100 dark:border-slate-800/60 space-y-2 text-left">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 dark:text-slate-500 text-[11px] font-bold uppercase tracking-wider">Catatan</span>
+                <span className="text-slate-800 dark:text-slate-200 text-xs font-semibold truncate max-w-[180px]">{expenseToDeleteDetails.note}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 dark:text-slate-500 text-[11px] font-bold uppercase tracking-wider">Kategori</span>
+                <span className="text-slate-800 dark:text-slate-200 text-xs font-semibold">{expenseToDeleteDetails.categoryName}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 dark:text-slate-500 text-[11px] font-bold uppercase tracking-wider">Nominal</span>
+                <span className="text-rose-600 dark:text-rose-400 text-xs font-bold">{formatRupiah(expenseToDeleteDetails.amount)}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 dark:text-slate-500 text-[11px] font-bold uppercase tracking-wider">Waktu</span>
+                <span className="text-slate-800 dark:text-slate-200 text-xs font-semibold">
+                  {format(expenseToDeleteDetails.date, "dd MMM yyyy, HH:mm")}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setExpenseToDeleteId(null);
+                  setExpenseToDeleteDetails(null);
+                }}
+                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-3 font-bold transition-colors text-sm cursor-pointer"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={async () => {
+                  if (expenseToDeleteId) {
+                    try {
+                      await db.expenses.delete(expenseToDeleteId);
+                    } catch (err) {
+                      console.error("Gagal menghapus:", err);
+                    }
+                  }
+                  setIsDeleteModalOpen(false);
+                  setExpenseToDeleteId(null);
+                  setExpenseToDeleteDetails(null);
+                }}
+                className="flex-1 bg-rose-600 hover:bg-rose-500 text-white rounded-xl py-3 font-bold transition-colors text-sm cursor-pointer"
+              >
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isAllocationModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -982,16 +1053,32 @@ export default function BentoDashboard() {
                         {formatRupiah(expense.amount)}
                       </p>
                       <button
-                         className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                         aria-label="Hapus Transaksi Kategori"
+                        className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 p-1 rounded-full cursor-pointer transition-colors"
+                        aria-label="Hapus Transaksi Kategori"
                         onClick={() => {
-                           if (expense.id) db.expenses.delete(expense.id);
+                          const category = CATEGORIES.find(c => c.id === expense.categoryId);
+                          setExpenseToDeleteId(expense.id || null);
+                          setExpenseToDeleteDetails({
+                            amount: expense.amount,
+                            date: expense.date,
+                            note: expense.note || category?.name || "",
+                            categoryName: category?.name || expense.categoryId,
+                          });
+                          setIsDeleteModalOpen(true);
                         }}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                       </button>
                     </div>
